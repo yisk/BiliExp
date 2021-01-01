@@ -14,6 +14,7 @@ async def anchor_task(biliapi: asyncbili,
                       task_config: dict
                       ):
     time = 0
+    price_limit = task_config.get("price_limit", 0)
     while task_config["times"] > time:
         try:
             ret = await biliapi.xliveAnchorCheck(roomid)
@@ -22,6 +23,9 @@ async def anchor_task(biliapi: asyncbili,
             await asyncio.sleep(task_config["delay"])
         else:
             if ret["data"]:
+                if ret["data"]["gift_price"] > price_limit:
+                    logging.info(f'{biliapi.name}: 直播间{roomid}天选时刻{ret["data"]["id"]}需要金瓜子超过上限，跳过参与')
+                    continue
                 if ret["data"]["time"] > 0:
                     try:
                         rret = await biliapi.xliveAnchorJoin(ret["data"]["id"], ret["data"]["gift_id"], ret["data"]["gift_num"])
