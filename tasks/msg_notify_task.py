@@ -24,7 +24,7 @@ async def msg_notify_task(biliapi: asyncbili):
                             if ii >= msg_at_num:
                                 break
                             try:
-                                logging.info(f'{biliapi.name}: 收到(item["user"]["nickname"])的@消息({item["item"]["source_content"]})')
+                                logging.info(f'{biliapi.name}: 收到({item["user"]["nickname"]})的@消息({item["item"]["source_content"]})')
                             except: 
                                 ...
                     else:
