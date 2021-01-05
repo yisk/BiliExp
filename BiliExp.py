@@ -59,16 +59,10 @@ def load_config(path: str) -> OrderedDict:
     if path:
         with open(path,'r',encoding='utf-8') as fp:
             return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
-    elif os.path.exists('./config/config.json'):
-        with open('./config/config.json','r',encoding='utf-8') as fp:
-            return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
-    elif os.path.exists('./config.json'):
-        with open('./config.json','r',encoding='utf-8') as fp:
-            return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
-    elif os.path.exists('/etc/BiliExp/config.json'):
-        with open('/etc/BiliExp/config.json','r',encoding='utf-8') as fp:
-            return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
     else:
+        for path in ('./config/config.json', './config.json', '/etc/BiliExp/config.json'):
+            with open(path,'r',encoding='utf-8') as fp:
+                return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
         raise RuntimeError('未找到配置文件')
 
 async def start(configData: dict):
