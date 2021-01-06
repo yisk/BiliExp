@@ -47,7 +47,7 @@ async def clean_dynamic_task(biliapi: asyncbili,
                         for keyword in task_config["black_keywords"]:
                             if keyword in text:
                                 await biliapi.removeDynamic(dyid)
-                                logging.info(f'{biliapi.name}: 已删除id为{dyid}的动态，原因为：包含黑名单关键字{x}')
+                                logging.info(f'{biliapi.name}: 已删除id为{dyid}的动态，原因为：包含黑名单关键字{keyword}')
                                 su += 1
                                 continue
 
