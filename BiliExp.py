@@ -61,8 +61,9 @@ def load_config(path: str) -> OrderedDict:
             return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
     else:
         for path in ('./config/config.json', './config.json', '/etc/BiliExp/config.json'):
-            with open(path,'r',encoding='utf-8') as fp:
-                return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
+            if os.path.exists(path):
+                with open(path,'r',encoding='utf-8') as fp:
+                    return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
         raise RuntimeError('未找到配置文件')
 
 async def start(configData: dict):
