@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 用Secrets生成配置文件config.json
 
-import json5, os
+import json5, os, re
 from collections import OrderedDict
 
 ADVCONFIG: str = os.environ.get('ADVCONFIG', None)
