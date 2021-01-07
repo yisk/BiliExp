@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import asyncio, json, time, logging, sys, re, io, os
+import asyncio, time, logging, sys, io, os
 from collections import OrderedDict
 from getopt import getopt
 from BiliClient import asyncbili
 import tasks
+from json5 import loads
 
 main_version = (1, 1, 9)
 main_version_str = '.'.join(map(str, main_version))
@@ -58,12 +59,12 @@ def load_config(path: str) -> OrderedDict:
     '''加载配置文件'''
     if path:
         with open(path,'r',encoding='utf-8') as fp:
-            return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
+            return loads(fp.read(), object_pairs_hook=OrderedDict)
     else:
         for path in ('./config/config.json', './config.json', '/etc/BiliExp/config.json'):
             if os.path.exists(path):
                 with open(path,'r',encoding='utf-8') as fp:
-                    return json.loads(re.sub(r'\/\*[\s\S]*?\*\/', '', fp.read()), object_pairs_hook=OrderedDict)
+                    return loads(fp.read(), object_pairs_hook=OrderedDict)
         raise RuntimeError('未找到配置文件')
 
 async def start(configData: dict):
