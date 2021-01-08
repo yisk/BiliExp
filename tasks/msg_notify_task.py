@@ -56,7 +56,7 @@ async def msg_notify_task(biliapi: asyncbili):
                     logging.warning(f'{biliapi.name}: 设置{item["talker_id"]}消息为已读异常，原因为({str(e)})')
                 else:
                     if ret["code"] == 0:
-                        logging.warning(f'{biliapi.name}: 成功设置{item["talker_id"]}消息为已读')
+                        logging.info(f'{biliapi.name}: 成功设置{item["talker_id"]}消息为已读')
                     else:
                         logging.warning(f'{biliapi.name}: 设置{item["talker_id"]}消息为已读失败，信息为{ret["msg"]}')
         else:
