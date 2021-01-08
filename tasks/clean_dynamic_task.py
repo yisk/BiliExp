@@ -7,8 +7,18 @@ async def clean_dynamic_task(biliapi: asyncbili,
                        task_config: dict
                        ) -> None:
     su, er = 0, 0
+    time_range = task_config.get("days_range", [7, 30])
+    endtime = now_time - (now_time + 28800) % 86400 + 86400 - time_range[0] * 86400 #清理结束时间
+    starttime = endtime - time_range[1] * 86400                                     #清理开始时间
+
     try:
         async for x in get_space_dynamic(biliapi):
+            timestamp = x["desc"]["timestamp"]
+            if timestamp > endtime:
+                continue
+            elif timestamp < starttime:
+                break
+
             dyid = x["desc"]["dynamic_id"]
             card = json.loads(x["card"])
 
