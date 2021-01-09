@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from aiohttp import ClientSession
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Dict, Awaitable, Any
 import time, json
 
 class asyncBiliApi(object):
@@ -14,7 +14,11 @@ class asyncBiliApi(object):
                 headers = headers
                 )
     
-    async def login_by_cookie(self, cookieData, checkBanned=True, strict=False) -> bool:
+    async def login_by_cookie(self, 
+                              cookieData, 
+                              checkBanned=True, 
+                              strict=False
+                              ) -> Awaitable[bool]:
         '''
         登录并获取账户信息
         cookieData dict 账户cookie
@@ -98,7 +102,7 @@ class asyncBiliApi(object):
         '''获取登录的账户等级'''
         return self._level
 
-    async def refreshInfo(self) -> None:
+    async def refreshInfo(self) -> Awaitable:
         '''刷新账户信息(需要先登录)'''
         ret = await self.getWebNav()
         if ret["code"] != 0:
@@ -132,7 +136,7 @@ class asyncBiliApi(object):
                             ps: int = 50, 
                             order: str = 'desc', 
                             order_type: str = 'attention'
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         获取指定用户关注的up主
         uid int 账户uid，默认为本账户，非登录账户只能获取20个*5页
@@ -152,7 +156,7 @@ class asyncBiliApi(object):
                             pn: int = 1, 
                             ps: int = 30, 
                             sort: str = 'publish_time', 
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         获取指定up主空间专栏投稿信息
         uid int 账户uid，默认为本账户
@@ -173,7 +177,7 @@ class asyncBiliApi(object):
                           tid: int = 0,
                           order: str = 'pubdate', 
                           keyword: str = ''
-                          ) -> dict:
+                          ) -> Awaitable[Dict[str, Any]]:
         '''
         获取指定up主空间视频投稿信息
         uid int 账户uid，默认为本账户
@@ -197,7 +201,7 @@ class asyncBiliApi(object):
                      order: str = '', 
                      duration: int = 0,
                      search_type: str = 'video'
-                     ) -> dict:
+                     ) -> Awaitable[Dict[str, Any]]:
         '''
         获取指定视频投稿信息
         keyword str 关键字
@@ -243,7 +247,7 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
 
-    async def getMyGroups(self) -> dict:
+    async def getMyGroups(self) -> Awaitable[Dict[str, Any]]:
         '''取应援团列表'''
         url = "https://api.vc.bilibili.com/link_group/v1/member/my_groups"
         async with self._session.get(url, verify_ssl=False) as r:
@@ -252,7 +256,7 @@ class asyncBiliApi(object):
     async def groupSign(self,
                         group_id: int,
                         owner_id: int
-                        ) -> dict:
+                        ) -> Awaitable[Dict[str, Any]]:
         '''
         应援团签到
         group_id int 应援团id
@@ -262,7 +266,7 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def getRelationTags(self) -> dict:
+    async def getRelationTags(self) -> Awaitable[Dict[str, Any]]:
         '''取关注用户分组列表'''
         url = "https://api.bilibili.com/x/relation/tags"
         async with self._session.get(url, verify_ssl=False) as r:
@@ -270,7 +274,7 @@ class asyncBiliApi(object):
 
     async def getRelationByUid(self,
                           uid: int
-                          ) -> dict:
+                          ) -> Awaitable[Dict[str, Any]]:
         '''
         判断与某个up关系
         是否关注，关注时间，是否拉黑.....
@@ -293,14 +297,14 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def getWebNav(self) -> dict:
+    async def getWebNav(self) -> Awaitable[Dict[str, Any]]:
         '''取导航信息'''
         url = "https://api.bilibili.com/x/web-interface/nav"
         async with self._session.get(url, verify_ssl=False) as r:
             ret = await r.json()
         return ret
 
-    async def getReward(self) -> dict:
+    async def getReward(self) -> Awaitable[Dict[str, Any]]:
         '''取B站经验信息'''
         url = "https://account.bilibili.com/home/reward"
         async with self._session.get(url, verify_ssl=False) as r:
@@ -308,7 +312,7 @@ class asyncBiliApi(object):
     
     async def likeCv(self, 
                      cvid: int, 
-                     type=1) -> dict:
+                     type=1) -> Awaitable[Dict[str, Any]]:
         '''
         点赞专栏
         cvid int 专栏id
@@ -325,7 +329,7 @@ class asyncBiliApi(object):
 
     async def vipPrivilegeReceive(self, 
                                   type: int = 1
-                                  ) -> dict:
+                                  ) -> Awaitable[Dict[str, Any]]:
         '''
         领取B站大会员权益
         type int 权益类型，1为B币劵，2为优惠券
@@ -340,7 +344,7 @@ class asyncBiliApi(object):
 
     async def getUserWallet(self, 
                             platformType: int = 3
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         获取账户钱包信息
         platformType int 平台类型
@@ -355,7 +359,7 @@ class asyncBiliApi(object):
     async def elecPayBcoin(self, 
                       uid: int, 
                       num: int = 5
-                      ) -> dict:
+                      ) -> Awaitable[Dict[str, Any]]:
         '''
         用B币给up主充电
         uid int up主uid
@@ -375,7 +379,7 @@ class asyncBiliApi(object):
 
     async def getDanmuInfo(self,
                            roomid: int
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         查询直播间弹幕服务器
         roomid int 真实房间id，非短id
@@ -388,7 +392,7 @@ class asyncBiliApi(object):
 
     async def xliveRoomInit(self, 
                             id: int = 1
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         获取房间初始化信息(房间短id转长id)
         id int 直播间id
@@ -400,7 +404,7 @@ class asyncBiliApi(object):
     async def xliveFansMedal(self, 
                            page: int = 1,
                            pageSize: int = 10,
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         获取粉丝牌
         page int 页码
@@ -412,7 +416,7 @@ class asyncBiliApi(object):
 
     async def xliveAnchorCheck(self,
                                roomid: int
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         查询直播天选时刻
         roomid int 真实房间id，非短id
@@ -426,7 +430,7 @@ class asyncBiliApi(object):
                               gift_id: int,
                               gift_num: int,
                               platform: str = 'pc'
-                              ) -> dict:
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
         参与直播天选时刻
         id int 天选时刻id
@@ -446,7 +450,7 @@ class asyncBiliApi(object):
             return await r.json()
         #{"code":400,"data":null,"message":"余额不足","msg":"余额不足"}
 
-    async def xliveFeedHeartBeat(self) -> dict:
+    async def xliveFeedHeartBeat(self) -> Awaitable[Dict[str, Any]]:
         '''直播心跳 feed'''
         url = 'https://api.live.bilibili.com/relation/v1/Feed/heartBeat'
         async with self._session.get(url, verify_ssl=False) as r:
@@ -460,7 +464,7 @@ class asyncBiliApi(object):
                            fontsize: int = 25,
                            mode: int = 1,
                            bubble: int = 0,
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         直播间发送消息
         roomid int 直播间id
@@ -488,7 +492,7 @@ class asyncBiliApi(object):
     async def xliveBp2Gold(self, 
                            num: int = 5, 
                            platform: str = 'pc'
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         B币劵购买金瓜子
         num int 花费B币劵数量，目前1B币=1000金瓜子
@@ -512,13 +516,13 @@ class asyncBiliApi(object):
         #{"code":1300014,"message":"b币余额不足","ttl":1,"data":null}
         #{"code":0,"message":"0","ttl":1,"data":{"status":2,"order_id":"2011042258413961167422787","gold":0,"bp":0}}
 
-    async def xliveSign(self) -> dict:
+    async def xliveSign(self) -> Awaitable[Dict[str, Any]]:
         '''B站直播签到'''
         url = "https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign"
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def xliveGetRecommendList(self) -> dict:
+    async def xliveGetRecommendList(self) -> Awaitable[Dict[str, Any]]:
         '''B站直播获取首页前10条直播'''
         url = f'https://api.live.bilibili.com/relation/v1/AppWeb/getRecommendList'
         async with self._session.get(url, verify_ssl=False) as r:
@@ -526,7 +530,7 @@ class asyncBiliApi(object):
 
     async def xliveGetRoomInfo(self,
                                room_id: int
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         B站直播获取房间信息
         room_id int 房间id
@@ -535,7 +539,7 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def xliveGiftBagList(self) -> dict:
+    async def xliveGiftBagList(self) -> Awaitable[Dict[str, Any]]:
         '''B站直播获取背包礼物'''
         url = 'https://api.live.bilibili.com/xlive/web-room/v1/gift/bag_list'
         async with self._session.get(url, verify_ssl=False) as r:
@@ -550,7 +554,7 @@ class asyncBiliApi(object):
                            storm_beat_id=0, 
                            price=0, 
                            platform="pc"
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         B站直播送出背包礼物
         biz_id int 房间号
@@ -589,7 +593,7 @@ class asyncBiliApi(object):
                            price: int = 0, 
                            storm_beat_id: int = 0,
                            platform: str = "pc"
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         B站直播送出礼物
         biz_id         int 房间号
@@ -622,7 +626,7 @@ class asyncBiliApi(object):
             return await r.json()
         #{"code":0,"msg":"success","message":"success","data":{"tid":"1609908157110100001","uid":615201,"uname":"Soulycoris","face":"https://i2.hdslb.com/bfs/face/6d57b8a7c852c9faa9f014a59876088e7eb6cf63.jpg","guard_level":0,"ruid":8466742,"rcost":431,"gift_id":1,"gift_type":5,"gift_name":"辣条","gift_num":1,"gift_action":"投喂","gift_price":100,"coin_type":"silver","total_coin":100,"pay_coin":100,"metadata":"","fulltext":"","rnd":"1609908000","tag_image":"","effect_block":1,"extra":{"wallet":{"gold":2900,"silver":514,"discount_id":0,"wallet_tid":"261638120","order_id":"","goods_id":0},"gift_bag":{"bag_id":0,"gift_num":0},"top_list":[],"follow":null,"medal":null,"title":null,"pk":{"pk_gift_tips":"","crit_prob":-1},"fulltext":"","event":{"event_score":0,"event_redbag_num":0},"capsule":null,"lottery_id":""},"blow_switch":0,"send_tips":"赠送成功","discount_id":0,"gift_effect":{"super":0,"combo_timeout":0,"super_gift_num":0,"super_batch_gift_num":0,"batch_combo_id":"","broadcast_msg_list":[],"small_tv_list":[],"beat_storm":null,"combo_id":"","smallTVCountFlag":true},"send_master":null,"crit_prob":-1,"combo_stay_time":3,"combo_total_coin":0,"demarcation":1,"magnification":1,"combo_resources_id":1,"is_special_batch":0,"send_gift_countdown":6,"bp_cent_balance":0,"price":0,"left_num":0,"need_num":0,"available_num":0}}
 
-    async def xliveGetUserInfo(self) -> dict:
+    async def xliveGetUserInfo(self) -> Awaitable[Dict[str, Any]]:
         '''B站直播获取用户信息'''
         url = 'https://api.live.bilibili.com/xlive/web-ucenter/user/get_user_info'
         async with self._session.get(url, verify_ssl=False) as r:
@@ -633,7 +637,7 @@ class asyncBiliApi(object):
                    aid: int, 
                    num: int = 1, 
                    select_like: int = 1
-                   ) -> dict:
+                   ) -> Awaitable[Dict[str, Any]]:
         '''
         给指定av号视频投币
         aid int 视频av号
@@ -656,7 +660,7 @@ class asyncBiliApi(object):
                     num: int = 1, 
                     upid: int = 0, 
                     select_like: int = 1
-                    ) -> dict:
+                    ) -> Awaitable[Dict[str, Any]]:
         '''
         给指定cv号专栏投币
         cvid int 专栏id
@@ -681,7 +685,7 @@ class asyncBiliApi(object):
 
     async def articleViewInfo(self, 
                               cvid: int
-                              ) -> dict:
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
         获取专栏信息
         cvid int 专栏id
@@ -693,7 +697,7 @@ class asyncBiliApi(object):
     async def xliveWebHeartBeat(self, 
                      hb: str = None, 
                      pf: str = None
-                     ) -> dict:
+                     ) -> Awaitable[Dict[str, Any]]:
         '''
         B站直播间心跳
         hb str 请求信息(base64编码) "{周期}|{uid}|1|0"
@@ -728,7 +732,7 @@ class asyncBiliApi(object):
                      benchmark: str,
                      time: int,
                      s: str
-                     ) -> dict:
+                     ) -> Awaitable[Dict[str, Any]]:
         '''
         B站直播间内部心跳
         id List[int] 整数数组[大分区,小分区,轮次,长位直播间]
@@ -758,7 +762,7 @@ class asyncBiliApi(object):
     async def xliveHeartBeatE(self, 
                      id: list, 
                      device: list
-                     ) -> dict:
+                     ) -> Awaitable[Dict[str, Any]]:
         '''
         B站进入直播间心跳
         id List[int] 整数数组[大分区,小分区,轮次,长位直播间]
@@ -779,7 +783,7 @@ class asyncBiliApi(object):
             ret = await r.json()
         return ret
 
-    async def get_home_medals(self) -> dict:
+    async def get_home_medals(self) -> Awaitable[Dict[str, Any]]:
         '''获得佩戴的勋章'''
         url = "https://api.live.bilibili.com/fans_medal/v1/fans_medal/get_home_medals"
         async with self._session.get(url, verify_ssl=False) as r:
@@ -789,7 +793,7 @@ class asyncBiliApi(object):
                      aid: int, 
                      cid: int, 
                      progres: int
-                     ) -> dict:
+                     ) -> Awaitable[Dict[str, Any]]:
         '''
         B站上报视频观看进度
         aid int 视频av号
@@ -808,7 +812,7 @@ class asyncBiliApi(object):
 
     async def share(self, 
                     aid
-                    ) -> dict:
+                    ) -> Awaitable[Dict[str, Any]]:
         '''
         分享指定av号视频
         aid int 视频av号
@@ -821,14 +825,14 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
 
-    async def xliveGetStatus(self) -> dict:
+    async def xliveGetStatus(self) -> Awaitable[Dict[str, Any]]:
         '''B站直播获取金银瓜子状态'''
         url = "https://api.live.bilibili.com/pay/v1/Exchange/getStatus"
         async with self._session.get(url, verify_ssl=False) as r:
             ret = await r.json()
         return ret
 
-    async def silver2coin(self) -> dict:
+    async def silver2coin(self) -> Awaitable[Dict[str, Any]]:
         '''银瓜子兑换硬币'''
         url = "https://api.live.bilibili.com/pay/v1/Exchange/silver2coin"
         post_data = {
@@ -840,7 +844,7 @@ class asyncBiliApi(object):
     async def getRegions(self, 
                          rid=1, 
                          num=6
-                         ) -> dict:
+                         ) -> Awaitable[Dict[str, Any]]:
         '''
         获取B站分区视频信息
         rid int 分区号
@@ -852,7 +856,7 @@ class asyncBiliApi(object):
 
     async def mangaClockIn(self, 
                      platform="android"
-                     ) -> dict:
+                     ) -> Awaitable[Dict[str, Any]]:
         '''
         模拟B站漫画客户端签到
         platform str 平台
@@ -865,7 +869,7 @@ class asyncBiliApi(object):
             ret = await r.json()
         return ret
 
-    async def mangaGetPoint(self) -> dict:
+    async def mangaGetPoint(self) -> Awaitable[Dict[str, Any]]:
         '''获取漫画积分'''
         url = f'https://manga.bilibili.com/twirp/pointshop.v1.Pointshop/GetUserPoint'
         async with self._session.post(url, json={}, verify_ssl=False) as r:
@@ -874,7 +878,7 @@ class asyncBiliApi(object):
     async def mangaShopExchange(self, 
                                 product_id: int, 
                                 point: int, 
-                                product_num=1) -> dict:
+                                product_num=1) -> Awaitable[Dict[str, Any]]:
         '''
         漫画积分商城兑换
         product_id int 商品id
@@ -890,7 +894,7 @@ class asyncBiliApi(object):
         async with self._session.post(url, json=post_data, verify_ssl=False) as r:
             return await r.json()
 
-    async def mangaGetVipReward(self) -> dict:
+    async def mangaGetVipReward(self) -> Awaitable[Dict[str, Any]]:
         '''获取漫画大会员福利'''
         url = 'https://manga.bilibili.com/twirp/user.v1.User/GetVipReward'
         async with self._session.post(url, json={"reason_id":1}, verify_ssl=False) as r:
@@ -898,7 +902,7 @@ class asyncBiliApi(object):
 
     async def mangaComrade(self, 
                            platform="web"
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         站友日漫画卷兑换查询
         platform str 平台
@@ -911,7 +915,7 @@ class asyncBiliApi(object):
                             pay_amount: int, 
                             product_id=1, 
                             platform='web'
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         B币购买漫画
         pay_amount int 购买数量
@@ -932,7 +936,7 @@ class asyncBiliApi(object):
                               page_size=50, 
                               tab_type=1,
                               platform="web"
-                              ) -> dict:
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
         获取账户中的漫读劵信息
         not_expired bool
@@ -957,7 +961,7 @@ class asyncBiliApi(object):
                                 order=1, 
                                 wait_free=0, 
                                 platform='web'
-                                ) -> dict:
+                                ) -> Awaitable[Dict[str, Any]]:
         '''
         B站漫画追漫列表
         page_num int 页数
@@ -980,7 +984,7 @@ class asyncBiliApi(object):
                           comic_id: int, 
                           device='pc', 
                           platform='web'
-                          ) -> dict:
+                          ) -> Awaitable[Dict[str, Any]]:
         '''
         获取漫画信息
         comic_id int 漫画id
@@ -997,7 +1001,7 @@ class asyncBiliApi(object):
     async def mangaGetEpisodeBuyInfo(self, 
                                ep_id: int, 
                                platform="web"
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         获取漫画购买信息
         ep_id int 漫画章节id
@@ -1016,7 +1020,7 @@ class asyncBiliApi(object):
                         coupon_id=0, 
                         auto_pay_gold_status=0, 
                         platform="web"
-                        ) -> dict:
+                        ) -> Awaitable[Dict[str, Any]]:
         '''
         购买漫画
         ep_id int 漫画章节id
@@ -1039,7 +1043,7 @@ class asyncBiliApi(object):
 
     async def mangaAddFavorite(self, 
                                comic_id: int
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         将漫画添加进追漫列表
         comic_id int 漫画id
@@ -1055,7 +1059,7 @@ class asyncBiliApi(object):
     async def mangaAddHistory(self, 
                               comic_id: int,
                               ep_id: int
-                              ) -> dict:
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
         添加漫画观看历史
         comic_id int 漫画id
@@ -1073,7 +1077,7 @@ class asyncBiliApi(object):
     async def activityAddTimes(self, 
                                sid: str, 
                                action_type: int
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         增加B站活动的参与次数
         sid str 活动的id
@@ -1091,7 +1095,7 @@ class asyncBiliApi(object):
     async def activityDo(self, 
                          sid: str, 
                          type: int
-                         ) -> dict:
+                         ) -> Awaitable[Dict[str, Any]]:
         '''
         参与B站活动
         sid str 活动的id
@@ -1108,7 +1112,7 @@ class asyncBiliApi(object):
 
     async def activityMyTimes(self, 
                               sid: str
-                              ) -> dict:
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
         获取B站活动次数
         sid str 活动的id
@@ -1120,7 +1124,7 @@ class asyncBiliApi(object):
     async def getDynamic(self, 
                          offset_dynamic_id: int = 0,
                          type_list=268435455
-                         ) -> dict:
+                         ) -> Awaitable[Dict[str, Any]]:
         '''取B站用户动态数据'''
         if offset_dynamic_id:
             url = f'https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/dynamic_history?uid={self._uid}&offset_dynamic_id={offset_dynamic_id}&type={type_list}'
@@ -1131,7 +1135,7 @@ class asyncBiliApi(object):
 
     async def getDynamicDetail(self, 
                          dynamic_id: int
-                         ) -> dict:
+                         ) -> Awaitable[Dict[str, Any]]:
         '''
         获取动态内容
         dynamic_id int 动态id
@@ -1145,7 +1149,7 @@ class asyncBiliApi(object):
                               message="", 
                               type=11, 
                               plat=1
-                              ) -> dict:
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
         评论动态
         oid int 动态id
@@ -1167,7 +1171,7 @@ class asyncBiliApi(object):
     async def dynamicLike(self, 
                           dynamic_id: int, 
                           like: int = 1
-                          ) -> dict:
+                          ) -> Awaitable[Dict[str, Any]]:
         '''
         点赞动态
         dynamic_id int 动态id
@@ -1188,7 +1192,7 @@ class asyncBiliApi(object):
                             dynamic_id: int, 
                             content="", 
                             extension='{"emoji_type":1}'
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         转发动态
         dynamic_id int 动态id
@@ -1217,7 +1221,7 @@ class asyncBiliApi(object):
                                  repost_code=3000, 
                                  From="create.comment", 
                                  extension='{"emoji_type":1}'
-                                 ) -> dict:
+                                 ) -> Awaitable[Dict[str, Any]]:
         '''
         转发动态
         rid int 动态id
@@ -1244,7 +1248,7 @@ class asyncBiliApi(object):
     async def dynamicCreate(self, 
                             content: str, 
                             ctrl: Iterable[Mapping[str, str]] = ()
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         创建动态(纯文本动态,图片动态请用dynamicCreateDraw方法)
         content str                         动态内容(内容中有@请看ctrl参数，否则忽略ctrl参数)
@@ -1292,7 +1296,7 @@ class asyncBiliApi(object):
 
     async def removeDynamic(self, 
                             dynamic_id: int
-                            ) -> dict:
+                            ) -> Awaitable[Dict[str, Any]]:
         '''
         删除自己的动态
         dynamic_id int 动态id
@@ -1307,7 +1311,7 @@ class asyncBiliApi(object):
 
     async def getLotteryNotice(self, 
                                dynamic_id: int
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         取指定抽奖信息
         dynamic_id int 抽奖动态id
@@ -1316,7 +1320,18 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def juryInfo(self) -> dict:
+    async def getLotteryInfoWeb(self, 
+                                room_id: int
+                                ) -> Awaitable[Dict[str, Any]]:
+        '''
+        取直播间抽奖信息
+        room_id int 直播间id
+        '''
+        url = f'https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/getLotteryInfoWeb?roomid={room_id}'
+        async with self._session.get(url, headers={"Referer":f'https://live.bilibili.com/{room_id}'}, verify_ssl=False) as r:
+            return await r.json()
+
+    async def juryInfo(self) -> Awaitable[Dict[str, Any]]:
         '''
         取当前账户风纪委员状态
         '''
@@ -1324,7 +1339,7 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def juryCaseObtain(self) -> dict:
+    async def juryCaseObtain(self) -> Awaitable[Dict[str, Any]]:
         '''
         拉取一个案件用于风纪委员投票
         '''
@@ -1335,9 +1350,21 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
 
+    async def juryCaseOpinion(self,
+                              cid: int,
+                              pn: int = 1,
+                              ps: int = 10
+                              ) -> Awaitable[Dict[str, Any]]:
+        '''
+        拉取一个案件用于风纪委员投票
+        '''
+        url = f'https://api.bilibili.com/x/credit/jury/case/opinion?cid={cid}&pn={pn}&ps={ps}'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
     async def juryCaseInfo(self,
                            cid: int
-                           ) -> dict:
+                           ) -> Awaitable[Dict[str, Any]]:
         '''
         获取风纪委员案件详细信息
         '''
@@ -1345,10 +1372,20 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
+    async def juryCase(self,
+                       cid: int
+                       ) -> Awaitable[Dict[str, Any]]:
+        '''
+        获取风纪委员案件结果
+        '''
+        url = f'https://api.bilibili.com/x/credit/jury/juryCase?cid={cid}'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
     async def juryVote(self,
                        cid: int,
                        **kwargs #非必选参数太多以可变参数列表传入
-                       ) -> dict:
+                       ) -> Awaitable[Dict[str, Any]]:
         '''
         风纪委员投票
         cid int 案件ID
@@ -1414,21 +1451,21 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
-    async def getMsgNotify(self) -> dict:
+    async def getMsgNotify(self) -> Awaitable[Dict[str, Any]]:
         '''获取主站消息提示(恢复，@，赞，系统提示等)'''
         url = f'https://api.vc.bilibili.com/link_setting/v1/link_setting/get?msg_notify=1&show_unfollowed_msg=1&build=0&mobi_app=web'
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
         #{"code":0,"msg":"ok","message":"ok","data":{"show_unfollowed_msg":0,"msg_notify":1,"set_like":0,"set_comment":0,"set_at":0,"is_group_fold":1,"should_receive_group":1,"receive_unfollow_msg":1,"followed_reply":0,"keys_reply":0,"recv_reply":0,"voyage_reply":0,"_gt_":0}}
 
-    async def msgFeedUnread(self) -> dict:
+    async def msgFeedUnread(self) -> Awaitable[Dict[str, Any]]:
         '''获取主站未读消息(恢复，@，赞，系统提示等)数量'''
         url = f'https://api.bilibili.com/x/msgfeed/unread?build=0&mobi_app=web'
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
         #{"code":0,"message":"0","ttl":1,"data":{"at":1,"chat":0,"like":0,"reply":0,"sys_msg":0,"up":0}}
 
-    async def msgFeedAt(self) -> dict:
+    async def msgFeedAt(self) -> Awaitable[Dict[str, Any]]:
         '''获取主站未读的@消息具体内容'''
         url = f'https://api.bilibili.com/x/msgfeed/at?build=0&mobi_app=web'
         async with self._session.get(url, verify_ssl=False) as r:
@@ -1440,7 +1477,7 @@ class asyncBiliApi(object):
                           sort_rule: int = 2,
                           size: int = None,
                           mobi_app: str = 'web'
-                          ) -> dict:
+                          ) -> Awaitable[Dict[str, Any]]:
         '''
         获取主站消息中心的消息
         session_type   int 对话类型，目前已知1是私信消息，3是应援团消息，其他取值未知
@@ -1460,7 +1497,7 @@ class asyncBiliApi(object):
                                ack_seqno: int,
                                session_type: int = 1,
                                mobi_app: str = 'web'
-                               ) -> dict:
+                               ) -> Awaitable[Dict[str, Any]]:
         '''
         确认主站消息中心的消息(即设置未读消息为已读)
         talker_id      int 对话对方的uid
