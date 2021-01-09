@@ -373,13 +373,37 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
 
+    async def getDanmuInfo(self,
+                           roomid: int
+                           ) -> dict:
+        '''
+        查询直播间弹幕服务器
+        roomid int 真实房间id，非短id
+        '''
+        url = f'https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id={roomid}&type=0'
+        async with self._session.get(url, verify_ssl=False) as r:
+            ret = await r.json()
+        return ret
+        #{"code":0,"message":"0","ttl":1,"data":{"group":"live","business_id":0,"refresh_row_factor":0.125,"refresh_rate":100,"max_delay":5000,"token":"vaG2ohBUDKuY_jkQKdXZt9fioOBO_kxGzv60xj_8YAIehdpbY_BwIMkUnS5wkyaU1lTBe0J8HQbo0ki6gNeqwEfc3W5SCNICTC7NxyVW_V0gTu_4Kf3MROvRCU_E87RpA9R24znPV0M=","host_list":[{"host":"tx-bj-live-comet-03.chat.bilibili.com","port":2243,"wss_port":443,"ws_port":2244},{"host":"hw-sh-live-comet-05.chat.bilibili.com","port":2243,"wss_port":443,"ws_port":2244},{"host":"broadcastlv.chat.bilibili.com","port":2243,"wss_port":443,"ws_port":2244}]}}
+
+    async def xliveRoomInit(self, 
+                            id: int = 1
+                            ) -> dict:
+        '''
+        获取房间初始化信息(房间短id转长id)
+        id int 直播间id
+        '''
+        url = f'https://api.live.bilibili.com/room/v1/Room/room_init?id={id}'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
     async def xliveFansMedal(self, 
                            page: int = 1,
                            pageSize: int = 10,
                            ) -> dict:
         '''
         获取粉丝牌
-        page int 直播间id
+        page int 页码
         pageSize int 字体颜色
         '''
         url = f'https://api.live.bilibili.com/fans_medal/v5/live_fans_medal/iApiMedal?page={page}&pageSize={pageSize}'
@@ -556,6 +580,54 @@ class asyncBiliApi(object):
             }
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
+
+    async def xliveGiftSend(self,
+                           biz_id: int,
+                           ruid: int,
+                           gift_id: int, 
+                           gift_num: int,
+                           price: int = 0, 
+                           storm_beat_id: int = 0,
+                           platform: str = "pc"
+                           ) -> dict:
+        '''
+        B站直播送出礼物
+        biz_id         int 房间号
+        ruid           int up主的uid
+        gift_id        int 礼物id, 银瓜子为1(银瓜子100),吃瓜为20004(金瓜子100),冰阔落为20008(金瓜子1000)
+        gift_num       int 送礼物的数量
+        storm_beat_id  int
+        price          int 礼物价格，目前都是0
+        platform       str 平台
+        '''
+        url = 'https://api.live.bilibili.com/gift/v2/Live/send'
+        post_data = {
+            "uid": self._uid,
+            "gift_id": gift_id,
+            "ruid": ruid,
+            "send_ruid": 0,
+            "gift_num": gift_num,
+            "coin_type": 'silver' if gift_id == 1 else 'gold',
+            "bag_id": 0,
+            "platform": platform,
+            "biz_code": "live",
+            "biz_id": biz_id,
+            #"rnd": rnd, #直播开始时间
+            "storm_beat_id": storm_beat_id,
+            "price": price,
+            "csrf": self._bili_jct,
+            "csrf_token": self._bili_jct
+            }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+        #{"code":0,"msg":"success","message":"success","data":{"tid":"1609908157110100001","uid":615201,"uname":"Soulycoris","face":"https://i2.hdslb.com/bfs/face/6d57b8a7c852c9faa9f014a59876088e7eb6cf63.jpg","guard_level":0,"ruid":8466742,"rcost":431,"gift_id":1,"gift_type":5,"gift_name":"辣条","gift_num":1,"gift_action":"投喂","gift_price":100,"coin_type":"silver","total_coin":100,"pay_coin":100,"metadata":"","fulltext":"","rnd":"1609908000","tag_image":"","effect_block":1,"extra":{"wallet":{"gold":2900,"silver":514,"discount_id":0,"wallet_tid":"261638120","order_id":"","goods_id":0},"gift_bag":{"bag_id":0,"gift_num":0},"top_list":[],"follow":null,"medal":null,"title":null,"pk":{"pk_gift_tips":"","crit_prob":-1},"fulltext":"","event":{"event_score":0,"event_redbag_num":0},"capsule":null,"lottery_id":""},"blow_switch":0,"send_tips":"赠送成功","discount_id":0,"gift_effect":{"super":0,"combo_timeout":0,"super_gift_num":0,"super_batch_gift_num":0,"batch_combo_id":"","broadcast_msg_list":[],"small_tv_list":[],"beat_storm":null,"combo_id":"","smallTVCountFlag":true},"send_master":null,"crit_prob":-1,"combo_stay_time":3,"combo_total_coin":0,"demarcation":1,"magnification":1,"combo_resources_id":1,"is_special_batch":0,"send_gift_countdown":6,"bp_cent_balance":0,"price":0,"left_num":0,"need_num":0,"available_num":0}}
+
+    async def xliveGetUserInfo(self) -> dict:
+        '''B站直播获取用户信息'''
+        url = 'https://api.live.bilibili.com/xlive/web-ucenter/user/get_user_info'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+        #{"code":0,"message":"0","ttl":1,"data":{"uid":xxx,"uname":"xxx","face":"https://i0.hdslb.com/bfs/face/2e79160cf78dd083c9aef01798e6335920930b66.jpg","billCoin":0.1,"silver":632,"gold":566,"achieve":70,"vip":0,"svip":0,"user_level":8,"user_next_level":9,"user_intimacy":29800,"user_next_intimacy":100000,"is_level_top":0,"user_level_rank":"\u003e50000","user_charged":0,"identification":1}}
 
     async def coin(self, 
                    aid: int, 
@@ -1409,6 +1481,13 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
         #{"code":0,"msg":"ok","message":"ok","data":[]}
+
+    async def wsConnect(self, url: str):
+        '''
+        创建一个websocket
+        url  str  url链接
+        '''
+        return await self._session.ws_connect(url, verify_ssl=False)
 
     async def __aenter__(self):
         return self
