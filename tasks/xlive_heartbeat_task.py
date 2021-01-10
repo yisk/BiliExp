@@ -137,8 +137,8 @@ async def send_msg_task(biliapi: asyncbili,
                         ):
     su = 0
     for roominfo in rooms:
-        if roominfo[4] == 1:
-            continue
+        #if roominfo[4] == 1:
+        #    continue
         retry = 3
         while retry:
             await asyncio.sleep(3)
