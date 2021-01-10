@@ -41,7 +41,7 @@ async def judgement_task(biliapi: asyncbili,
     su = 0
     try:
         async with timeout(Timeout):
-            while su < vote_num:
+            while True:
                 while True:
                     try:
                         ret = await biliapi.juryCaseObtain()
@@ -85,8 +85,12 @@ async def judgement_task(biliapi: asyncbili,
                         else:
                             logging.warning(f'{biliapi.name}: 风纪委员投票id为{cid}的案件失败，信息为：{ret["message"]}')
                 
-                logging.info(f'{biliapi.name}: 风纪委员投票等待{check_interval}s后继续获取案件')
-                await asyncio.sleep(check_interval)
+                if su < vote_num:
+                    logging.info(f'{biliapi.name}: 风纪委员投票等待{check_interval}s后继续获取案件')
+                    await asyncio.sleep(check_interval)
+                else:
+                    logging.info(f'{biliapi.name}: 风纪委员投票成功完成{su}次后退出')
+                    break
 
     except asyncio.TimeoutError:
         logging.warning(f'{biliapi.name}: 风纪委员投票任务超时({Timeout}秒)退出')
