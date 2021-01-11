@@ -390,6 +390,44 @@ class asyncBiliApi(object):
         return ret
         #{"code":0,"message":"0","ttl":1,"data":{"group":"live","business_id":0,"refresh_row_factor":0.125,"refresh_rate":100,"max_delay":5000,"token":"vaG2ohBUDKuY_jkQKdXZt9fioOBO_kxGzv60xj_8YAIehdpbY_BwIMkUnS5wkyaU1lTBe0J8HQbo0ki6gNeqwEfc3W5SCNICTC7NxyVW_V0gTu_4Kf3MROvRCU_E87RpA9R24znPV0M=","host_list":[{"host":"tx-bj-live-comet-03.chat.bilibili.com","port":2243,"wss_port":443,"ws_port":2244},{"host":"hw-sh-live-comet-05.chat.bilibili.com","port":2243,"wss_port":443,"ws_port":2244},{"host":"broadcastlv.chat.bilibili.com","port":2243,"wss_port":443,"ws_port":2244}]}}
 
+    async def xliveSecondGetList(self, 
+                                 parent_area_id: int = 1,
+                                 area_id: int = 0,
+                                 sort_type: str = '',
+                                 page: int = 1,
+                                 platform: str = 'web'
+                                 ) -> Awaitable[Dict[str, Any]]:
+        '''
+        获取指定分区直播间列表
+        parent_area_id   int  大分区id  2网游 3手游 6单机 1娱乐 5电台 9虚拟主播 10生活 11学习
+        area_id          int  小分区id  0为全部小分区，不同大分区有不同的小分区
+        sort_type        str  排序方法  第一次请求为空，所有排序方法的值在本方法的返回值["data"]["new_tags"]里提供
+        page             int  页数
+        platform         str  平台，任意字符串
+        '''
+        url = f'https://api.live.bilibili.com/xlive/web-interface/v1/second/getList?platform={platform}&parent_area_id={parent_area_id}&area_id={area_id}&sort_type={sort_type}&page={page}'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
+    async def xliveGetRoomList(self, 
+                               parent_area_id: int = 1,
+                               area_id: int = 0,
+                               sort_type: str = '',
+                               page: int = 1,
+                               platform: str = 'web'
+                               ) -> Awaitable[Dict[str, Any]]:
+        '''
+        获取指定分区直播间列表
+        parent_area_id   int  大分区id  2网游 3手游 6单机 1娱乐 5电台 9虚拟主播 10生活 11学习
+        area_id          int  小分区id  0为全部小分区，不同大分区有不同的小分区
+        sort_type        str  排序方法  第一次请求为空，所有排序方法的值在本方法的返回值["data"]["new_tags"]里提供
+        page             int  页数
+        platform         str  平台，任意字符串
+        '''
+        url = f'https://api.live.bilibili.com/room/v3/area/getRoomList?platform={platform}&parent_area_id={parent_area_id}&area_id={area_id}&sort_type={sort_type}&page={page}'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
     async def xliveRoomInit(self, 
                             id: int = 1
                             ) -> Awaitable[Dict[str, Any]]:
@@ -1331,6 +1369,13 @@ class asyncBiliApi(object):
         async with self._session.get(url, headers={"Referer":f'https://live.bilibili.com/{room_id}'}, verify_ssl=False) as r:
             return await r.json()
 
+    async def StormCheck(self,
+                   room_id: int
+                   ) -> Awaitable[Dict[str, Any]]:
+        url = f'https://api.live.bilibili.com/lottery/v1/Storm/check?roomid={room_id}'
+        async with self._session.get(url, headers={"Referer":f'https://live.bilibili.com/{room_id}'}, verify_ssl=False) as r:
+            return await r.json()
+
     async def juryInfo(self) -> Awaitable[Dict[str, Any]]:
         '''
         取当前账户风纪委员状态
@@ -1518,6 +1563,17 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
         #{"code":0,"msg":"ok","message":"ok","data":[]}
+
+    async def getRoomIdByUid(self,
+                             uid: int
+                             ) -> Awaitable[Dict[str, Any]]:
+        '''通过uid获得直播间id
+        uid  int  用户uid
+        '''
+        url = f'https://api.live.bilibili.com/room/v2/Room/room_id_by_uid?uid={uid}'
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+        #{"code":0,"msg":"ok","message":"ok","data":{"room_id":22725017}}
 
     async def wsConnect(self, url: str):
         '''

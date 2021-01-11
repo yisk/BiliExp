@@ -29,7 +29,7 @@ async def judgement_task(biliapi: asyncbili,
         webhook.addMsg('msg_simple', f'{biliapi.name}:风纪委资格失效\n')
         return
 
-    logging.warning(f'{biliapi.name}: 拥有风纪委员身份，开始获取案件投票，当前裁决正确率为：{ret["data"]["rightRadio"]}%')
+    logging.info(f'{biliapi.name}: 拥有风纪委员身份，开始获取案件投票，当前裁决正确率为：{ret["data"]["rightRadio"]}%')
     webhook.addMsg('msg_simple', f'{biliapi.name}:风纪委当前裁决正确率为：{ret["data"]["rightRadio"]}%\n')
 
     baiduNLPConfig = task_config.get("baiduNLP", None)
