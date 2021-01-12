@@ -66,6 +66,9 @@ def isJoinAnchor(anchor: Dict[str, Any],
         return False
     if anchor["room_id"] in condition["room_filter"]:
         return False
+    for gf in condition["gift_filter"]:
+        if gf in anchor["award_name"]:
+            return False
     for dm in condition["room_filter"]:
         if dm in anchor["danmu"]:
             return False
