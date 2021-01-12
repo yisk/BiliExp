@@ -2,6 +2,10 @@ from BiliClient import asyncbili
 from .push_message_task import webhook
 import logging, json
 
+uid_map = {
+    17561219: "直播小喇叭"
+    }
+
 async def msg_notify_task(biliapi: asyncbili):
     '''获取主站@和私信消息'''
     try:
@@ -44,12 +48,13 @@ async def msg_notify_task(biliapi: asyncbili):
                 for item in ret["data"]["session_list"]:
                     if item["unread_count"] == 0:
                         break
+                    show_name = uid_map.get(item["last_msg"]["sender_uid"], item["last_msg"]["sender_uid"])
                     if item["last_msg"]["msg_type"] == 1:
                         content = json.loads(item["last_msg"]["content"])
-                        logging.info(f'{biliapi.name}: 收到({item["last_msg"]["sender_uid"]})的私信消息{item["unread_count"]}条，最后一条消息为({content["content"]})')
+                        logging.info(f'{biliapi.name}: 收到({show_name})的私信消息{item["unread_count"]}条，最后一条消息为({content["content"]})')
                     else:
-                        logging.info(f'{biliapi.name}: 收到({item["last_msg"]["sender_uid"]})的私信消息{item["unread_count"]}条，最后一条消息无法显示')
-                    webhook.addMsg('msg_simple', f'{biliapi.name}:收到({item["last_msg"]["sender_uid"]})的私信消息{item["unread_count"]}条\n')
+                        logging.info(f'{biliapi.name}: 收到({show_name})的私信消息{item["unread_count"]}条，最后一条消息无法显示')
+                    webhook.addMsg('msg_simple', f'{biliapi.name}:收到({show_name})的私信消息{item["unread_count"]}条\n')
 
                     try:
                         ret = await biliapi.sessionUpdateAck(item["talker_id"], item["max_seqno"])
