@@ -1,6 +1,7 @@
 from BiliClient import asyncbili
 from typing import AsyncGenerator, Dict, Any, List, Union
 import logging, asyncio
+from aiohttp.client_exceptions import ServerDisconnectedError
 from async_timeout import timeout
 
 async def xlive_anchor_task(biliapi: asyncbili,
@@ -24,8 +25,13 @@ async def xlive_anchor_task(biliapi: asyncbili,
                         logging.warning(f'{biliapi.name}: 天选时刻抽奖任务获取直播间{room["roomid"]}抽奖信息失败，信息为({ret["message"]})')
                         continue
                     anchor = ret["data"]["anchor"]
-                    if anchor["id"] in save_map:
+
+                    if anchor["status"] != 1: #排除重复参加
                         continue
+
+                    if anchor["id"] in save_map: #排除重复参加
+                        continue
+
                     if not isJoinAnchor(anchor, task_config):
                         save_map[anchor["id"]] = None
                         continue
@@ -44,11 +50,9 @@ async def xlive_anchor_task(biliapi: asyncbili,
                             logging.warning(f'{biliapi.name}: 参与直播间{room["roomid"]}的天选时刻{anchor["id"]}失败，信息为({ret["message"]})')
 
                     if task_config["unfollow"] and status and anchor["require_type"] == 1:
+                        await asyncio.sleep(6)
+                        await biliapi.followUser(room["uid"], 0)
                         logging.info(f'{biliapi.name}: 取关主播{room["uid"]}')
-                        try:
-                            await biliapi.followUser(room["uid"], 0)
-                        except:
-                            ...
     
     except asyncio.TimeoutError:
         logging.warning(f'{biliapi.name}: 天选时刻抽奖任务超时({Timeout}秒)退出')
@@ -99,6 +103,9 @@ async def xliveRoomGenerator(biliapi: asyncbili,
         page += 1
         try:
             ret = await biliapi.xliveSecondGetList(pAreaId, AreaId, sort, page)
+        except ServerDisconnectedError:
+            logging.warning(f'{biliapi.name}: 获取直播间列表异常,原因为(服务器强制断开连接)')
+            return
         except Exception as e:
             logging.warning(f'{biliapi.name}: 获取直播间列表异常,原因为({str(e)})')
             return
