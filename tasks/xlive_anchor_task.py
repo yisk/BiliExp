@@ -1,4 +1,5 @@
 from BiliClient import asyncbili
+from .import_once import taday
 from typing import AsyncGenerator, Dict, Any, List, Union
 import logging, asyncio, time, traceback
 from aiohttp.client_exceptions import ServerDisconnectedError
@@ -11,11 +12,16 @@ async def xlive_anchor_task(biliapi: asyncbili,
     Timeout = task_config.get("timeout", 850)
     delay = task_config.get("delay", 0)
     follow_group = task_config.get("follow_group", None)
+    unfollow = task_config.get("unfollow", True)
+    clean_group_interval = task_config.get("clean_group_interval", 0)
+
     if follow_group:
         tagid = await getRelationTagByName(biliapi, follow_group)
         if tagid == -1:
             logging.warning(f'{biliapi.name}: 天选时刻指定关注分组不可用，退出任务')
             return
+        if clean_group_interval != 0 and taday % clean_group_interval == 0:
+            await cleanGroup(biliapi, tagid)
 
     save_map = {}
     is_followed = True
@@ -42,13 +48,13 @@ async def xlive_anchor_task(biliapi: asyncbili,
                                 save_map[anchor["id"]] = None
                                 continue
 
-                            if follow_group:
-                                await relationAddUser(biliapi, room["uid"], tagid)
-
-                            if task_config["unfollow"]:
+                            if unfollow or follow_group:              #需要取关或者需要加入用户组，提前判断是否已经关注
                                 is_followed = await isUserFollowed(biliapi, room["uid"])
 
-                            await anchorJoin(biliapi, anchor, room, is_followed, save_map) #参加天选时刻
+                            if follow_group and not is_followed:      #需要加入用户组但没有被关注，执行加入用户组
+                                await relationAddUser(biliapi, room["uid"], tagid)
+
+                            await anchorJoin(biliapi, anchor, room, is_followed or not unfollow, save_map) #参加天选时刻
 
                 await asyncio.sleep(task_config["searche_interval"])
                 await cleanMapWithUnfollow(biliapi, save_map)
@@ -215,3 +221,22 @@ async def relationAddUser(biliapi: asyncbili,
         if ret["code"] != 0:
             logging.warning(f'{biliapi.name}: 天选将主播{uid}加入分组失败,信息为({ret["message"]})')
 
+async def cleanGroup(biliapi: asyncbili,
+                     tagid: int
+                     ):
+    has = True
+    while has:
+        try:
+            ret = await biliapi.getRelationTag(tagid)
+            print(ret)
+        except Exception as e:
+            logging.warning(f'{biliapi.name}: 天选获取分组用户异常,原因为({str(e)})')
+            break
+        else:
+            if ret["code"] != 0:
+                logging.warning(f'{biliapi.name}: 天选获取分组用户失败,信息为({ret["message"]})')
+                break
+        has = len(ret["data"]) == 50
+
+        for x in ret["data"]:
+            await biliapi.followUser(x["mid"], 0)

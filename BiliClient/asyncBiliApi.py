@@ -272,6 +272,52 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
+    async def getRelationTag(self,
+                             tagid: int,
+                             mid: int = None,
+                             pn: int = 1,
+                             ps: int = 50,
+                             ) -> Awaitable[Dict[str, Any]]:
+        '''取关注用户分组用户列表'''
+        if not mid:
+            mid = self._uid
+        url = f"https://api.bilibili.com/x/relation/tag?mid={mid}&tagid={tagid}&pn={pn}&ps={ps}"
+        async with self._session.get(url, verify_ssl=False) as r:
+            return await r.json()
+
+    async def relationTagsAddUser(self,
+                                  fids: int,
+                                  tagids: int
+                                  ) -> Awaitable[Dict[str, Any]]:
+        '''
+        将用户加入关注分组
+        fids    int  用户名称
+        tagids  int  分组id
+        '''
+        url = "https://api.bilibili.com/x/relation/tags/addUsers"
+        post_data = {
+            "fids": fids,
+            "tagids": tagids,
+            "csrf": self._bili_jct
+            }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+
+    async def createRelationTag(self,
+                                tag: str
+                                ) -> Awaitable[Dict[str, Any]]:
+        '''
+        创建用户分组
+        tag  str  分组名称
+        '''
+        url = "https://api.bilibili.com/x/relation/tag/create"
+        post_data = {
+            "tag": tag,
+            "csrf": self._bili_jct
+            }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+
     async def getRelationByUid(self,
                           uid: int
                           ) -> Awaitable[Dict[str, Any]]:
