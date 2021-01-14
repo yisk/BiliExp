@@ -7,9 +7,17 @@ from async_timeout import timeout
 async def xlive_anchor_task(biliapi: asyncbili,
                             task_config: Dict[str, Any]
                             ) -> None:
+    '''天选时刻任务'''
     Timeout = task_config.get("timeout", 850)
     delay = task_config.get("delay", 0)
-    save_map = {} #id:(roomid, uid)
+    follow_group = task_config.get("follow_group", None)
+    if follow_group:
+        tagid = await getRelationTagByName(biliapi, follow_group)
+        if tagid == -1:
+            logging.warning(f'{biliapi.name}: 天选时刻指定关注分组不可用，退出任务')
+            return
+
+    save_map = {}
     is_followed = True
     try:
         async with timeout(Timeout):
@@ -20,8 +28,8 @@ async def xlive_anchor_task(biliapi: asyncbili,
                             if delay:
                                 await asyncio.sleep(delay)
 
-                            bl, anchor = await getAnchorInfo(biliapi, room["roomid"]) #获取天选信息
-                            if not bl:
+                            ok, anchor = await getAnchorInfo(biliapi, room["roomid"]) #获取天选信息
+                            if not ok:
                                 continue
 
                             if anchor["status"] != 1: #排除重复参加
@@ -33,6 +41,9 @@ async def xlive_anchor_task(biliapi: asyncbili,
                             if not isJoinAnchor(anchor, task_config): #过滤条件
                                 save_map[anchor["id"]] = None
                                 continue
+
+                            if follow_group:
+                                await relationAddUser(biliapi, room["uid"], tagid)
 
                             if task_config["unfollow"]:
                                 is_followed = await isUserFollowed(biliapi, room["uid"])
@@ -157,3 +168,50 @@ async def xliveRoomGenerator(biliapi: asyncbili,
             return
 
         has_more = ret["data"]["has_more"] == 1
+
+async def getRelationTagByName(biliapi: asyncbili,
+                               name: str,
+                               auto_create: bool = True
+                               ) -> int:
+    tagid = -1
+    try:
+        ret = await biliapi.getRelationTags()
+    except Exception as e:
+        logging.warning(f'{biliapi.name}: 天选获取用户分组失败,原因为({str(e)})')
+    else:
+        if ret["code"] != 0:
+            logging.warning(f'{biliapi.name}: 天选获取用户分组失败,信息为({ret["message"]})')
+        else:
+            for tag in ret["data"]:
+                if tag["name"] == name:
+                    tagid = tag["tagid"]
+
+    if tagid != -1 or not auto_create:
+        return tagid
+
+    try:
+        ret = await biliapi.createRelationTag(name)
+    except Exception as e:
+        logging.warning(f'{biliapi.name}: 天选创建用户分组异常,原因为({str(e)})')
+    else:
+        if ret["code"] != 0:
+            logging.warning(f'{biliapi.name}: 天选创建用户分组失败,信息为({ret["message"]})')
+        else:
+            return ret["data"]["tagid"]
+    
+    return tagid
+
+async def relationAddUser(biliapi: asyncbili,
+                          uid: int,
+                          tagid: int
+                          ) -> int:
+    await biliapi.followUser(uid, 1)
+    await asyncio.sleep(2)
+    try:
+        ret = await biliapi.relationTagsAddUser(uid, tagid)
+    except Exception as e:
+        logging.warning(f'{biliapi.name}: 天选将主播{uid}加入分组异常,原因为({str(e)})')
+    else:
+        if ret["code"] != 0:
+            logging.warning(f'{biliapi.name}: 天选将主播{uid}加入分组失败,信息为({ret["message"]})')
+
