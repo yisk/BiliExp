@@ -61,7 +61,7 @@ async def msg_notify_task(biliapi: asyncbili,
                         logging.info(f'{biliapi.name}: 收到({show_name})的私信消息{item["unread_count"]}条，最后一条消息为({content})')
                         webhook.addMsg('msg_simple', f'{biliapi.name}:收到({show_name})的私信消息{item["unread_count"]}条\n')
                     else:
-                        logging.info(f'{biliapi.name}: 收到({show_name})的私信消息{item["unread_count"]}条，最后一条被关键字{find}过滤')
+                        logging.info(f'{biliapi.name}: 收到({show_name})的私信消息{item["unread_count"]}条，被关键字“{find}”过滤')
                     try:
                         ret = await biliapi.sessionUpdateAck(item["talker_id"], item["max_seqno"])
                     except Exception as e: 
