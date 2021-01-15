@@ -1,6 +1,6 @@
 from BiliClient import asyncbili, calc_sign
 from .push_message_task import webhook
-import logging, asyncio, uuid, time, aiohttp
+import logging, asyncio, uuid, time, traceback
 from async_timeout import timeout
 
 async def xlive_heartbeat_task(biliapi: asyncbili,
@@ -122,7 +122,7 @@ async def heartbeat_task(biliapi: asyncbili,
     except asyncio.TimeoutError:
         logging.info(f'{biliapi.name}: 直播{room_id}心跳超时退出')
     except Exception as e:
-        logging.warning(f'{biliapi.name}: 直播{room_id}心跳异常，原因为{str(e)}，退出直播心跳')
+        logging.warning(f'{biliapi.name}: 直播{room_id}心跳异常，异常为{traceback.format_exc()}，退出直播心跳')
         webhook.addMsg('msg_simple', f'{biliapi.name}:直播{room_id}心跳发生异常\n')
 
 class xliveHeartBeat:
