@@ -136,7 +136,7 @@ def main(*args, **kwargs):
 
     #启动任务
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.wait([start(configData)]))
+    loop.run_until_complete(start(configData))
 
 if __name__=="__main__":
     kwargs = {}
