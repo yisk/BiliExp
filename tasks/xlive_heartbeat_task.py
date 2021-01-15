@@ -1,11 +1,12 @@
-from BiliClient import asyncbili, calc_sign
+from BiliClient import asyncbili
 from .push_message_task import webhook
-import logging, asyncio, uuid, time, traceback
+import logging, asyncio, uuid
 from async_timeout import timeout
+from typing import Awaitable, AsyncGenerator, Tuple, Union, List
 
 async def xlive_heartbeat_task(biliapi: asyncbili,
                                task_config: dict
-                               ) -> None:
+                               ) -> Awaitable[None]:
     timeout = task_config.get("timeout", task_config.get("time", 30)) * 60
     send_msg = task_config.get("send_msg", "")
     medal_room = task_config.get("medal_room", True)
@@ -23,7 +24,7 @@ async def xlive_heartbeat_task(biliapi: asyncbili,
     if tasks:
         await asyncio.wait(tasks)
 
-async def get_rooms(biliapi: asyncbili):
+async def get_rooms(biliapi: asyncbili) -> Awaitable[List[int]]:
     '''获取所有勋章房间'''
     result = []
     page = 1
@@ -50,7 +51,7 @@ async def get_rooms(biliapi: asyncbili):
 async def send_msg_task(biliapi: asyncbili,
                         rooms: list,
                         msg: str
-                        ):
+                        ) -> Awaitable:
     su = 0
     for roomid in rooms:
         retry = 3
@@ -77,8 +78,8 @@ async def send_msg_task(biliapi: asyncbili,
 
 async def heartbeat_task(biliapi: asyncbili,
                          room_id: int,
-                         max_time: float
-                         ):
+                         max_time: Union[int, float]
+                         ) -> Awaitable:
     try:
         ret = await biliapi.xliveGetRoomInfo(room_id)
         if ret["code"] != 0:
@@ -104,70 +105,70 @@ async def heartbeat_task(biliapi: asyncbili,
     ii = 0
     try:
         async with timeout(max_time):
-            heart_beat = xliveHeartBeat(biliapi, buvid, parent_area_id, area_id, room_id)
-            async for code, message, wtime in heart_beat: #每一次迭代发送一次心跳
+            async for code, data in xliveHeartBeatLoop(biliapi, parent_area_id, area_id, room_id, buvid): #每一次迭代发送一次心跳
                 if code != 0:
                     if retry:
-                        logging.warning(f'{biliapi.name}: 直播心跳错误，原因为{message}，重新进入房间')
-                        heart_beat.reset()
+                        logging.warning(f'{biliapi.name}: 直播心跳错误，原因为{data}，重新进入房间')
                         retry -= 1
                         continue
                     else:
-                        logging.warning(f'{biliapi.name}: 直播心跳错误，原因为{message}，跳过')
+                        logging.warning(f'{biliapi.name}: 直播心跳错误，原因为{data}，退出心跳')
                         break
                 ii += 1
                 logging.info(f'{biliapi.name}: 成功在id为{room_id}的直播间发送第{ii}次心跳')
-                await asyncio.sleep(wtime) #等待wtime秒进行下一次迭代
+                await asyncio.sleep(data) #等待下一次迭代
 
     except asyncio.TimeoutError:
-        logging.info(f'{biliapi.name}: 直播{room_id}心跳超时退出')
+        logging.info(f'{biliapi.name}: 直播{room_id}心跳超时{max_time}s退出')
     except Exception as e:
-        logging.warning(f'{biliapi.name}: 直播{room_id}心跳异常，异常为{traceback.format_exc()}，退出直播心跳')
+        logging.warning(f'{biliapi.name}: 直播{room_id}心跳异常，异常为{str(e)}，退出直播心跳')
         webhook.addMsg('msg_simple', f'{biliapi.name}:直播{room_id}心跳发生异常\n')
 
-class xliveHeartBeat:
-    '''B站心跳异步迭代器，每迭代一次发送一次心跳'''
+async def xliveHeartBeatLoop(biliapi: asyncbili, 
+                             parent_area_id: int, 
+                             area_id: int, 
+                             room_id: int,
+                             buvid: str
+                             ) -> AsyncGenerator[Tuple[int, Union[int, str]], None]:
+    '''心跳循环'''
+    _uuid = str(uuid.uuid4())
+    while True:
+        num = 0
+        ret = await biliapi.xliveHeartBeatE(parent_area_id,
+                                            area_id,
+                                            room_id,
+                                            num,
+                                            _uuid)
+        if ret["code"] == 0:
+            ets = ret["data"]["timestamp"]
+            benchmark = ret["data"]["secret_key"]
+            interval = ret["data"]["heartbeat_interval"]
+            secret_rule = ret["data"]["secret_rule"]
+            num += 1
+            yield 0, interval
+        else:
+            yield ret["code"], ret["message"]
+            continue
 
-    def __init__(self, biliapi: asyncbili, buvid: str, parent_area_id: int, area_id: int, room_id: int):
-        self._biliapi = biliapi
-        self._data = {
-            "id": [parent_area_id, area_id, 0, room_id],
-            "device": [buvid, str(uuid.uuid4())]
-            }
-        self._secret_rule: list = None
-
-    def reset(self):
-        '''重新进入房间心跳'''
-        data = {
-            "id": self._data["id"],
-            "device": self._data["device"]
-            }
-        data["id"][2] = 0
-        self._data = data
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        
-        if self._data["id"][2] == 0:   #第1次执行进入房间心跳 HeartBeatE
-            ret = await self._biliapi.xliveHeartBeatE(**self._data)
+        while True:
+            num += 1
+            ret = await biliapi.xliveHeartBeatX(parent_area_id,
+                                                area_id,
+                                                room_id,
+                                                num,
+                                                _uuid,
+                                                ets,
+                                                benchmark,
+                                                interval,
+                                                secret_rule
+                                                )
             if ret["code"] == 0:
-                self._data["ets"] = ret["data"]["timestamp"]
-                self._data["benchmark"] = ret["data"]["secret_key"]
-                self._data["time"] = ret["data"]["heartbeat_interval"]
-                self._secret_rule = ret["data"]["secret_rule"]
-                self._data["id"][2] += 1
-            return ret["code"], ret["message"], ret["data"]["heartbeat_interval"]
-
-        else:                          #第n>1次执行进入房间心跳 HeartBeatX
-            self._data["ts"] = int(time.time() * 1000)
-            self._data["s"] = calc_sign(self._data, self._secret_rule)
-            ret = await self._biliapi.xliveHeartBeatX(**self._data)
-            if ret["code"] == 0:
-                self._data["ets"] = ret["data"]["timestamp"]
-                self._data["benchmark"] = ret["data"]["secret_key"]
-                self._data["time"] = ret["data"]["heartbeat_interval"]
-                self._secret_rule = ret["data"]["secret_rule"]
-                self._data["id"][2] += 1
-            return ret["code"], ret["message"], ret["data"]["heartbeat_interval"]
+                ets = ret["data"]["timestamp"]
+                benchmark = ret["data"]["secret_key"]
+                interval = ret["data"]["heartbeat_interval"]
+                secret_rule = ret["data"]["secret_rule"]
+                num += 1
+                yield 0, interval
+            else:
+                yield ret["code"], ret["message"]
+                break

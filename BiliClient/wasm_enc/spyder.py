@@ -172,10 +172,6 @@ stdweb = StdWeb(wasm)
 spyder = wasm.exports['spyder']
 
 def calc_sign(data: Dict[str, Union[str, int]], secret_rule: Iterable[int]) -> str:
-    data = data.copy()
-    for k in ("id", "device"):
-        if not isinstance(data[k], str):
-            data[k] = dumps(data[k])
     input_string = dumps(data)
     string_address = stdweb.prepare_any_arg(input_string)
     array_address = stdweb.prepare_any_arg(Array(secret_rule))
