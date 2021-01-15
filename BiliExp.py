@@ -6,7 +6,7 @@ from BiliClient import asyncbili
 import tasks
 from json5 import loads
 
-main_version = (1, 1, 9)
+main_version = (1, 2, 0)
 main_version_str = '.'.join(map(str, main_version))
 
 def version_compare(version: str):
