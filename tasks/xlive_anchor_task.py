@@ -35,7 +35,7 @@ async def xlive_anchor_task(biliapi: asyncbili,
                                 await asyncio.sleep(delay)
 
                             ok, anchor = await getAnchorInfo(biliapi, room["roomid"]) #获取天选信息
-                            if not ok:
+                            if not ok or not anchor:
                                 continue
 
                             if anchor["status"] != 1: #排除重复参加
@@ -48,7 +48,9 @@ async def xlive_anchor_task(biliapi: asyncbili,
                                 save_map[anchor["id"]] = None
                                 continue
 
-                            if unfollow or follow_group:              #需要取关或者需要加入用户组，提前判断是否已经关注
+                            if not anchor["require_type"] == 1:
+                                is_followed = True
+                            elif unfollow or follow_group:  #需要取关或者需要加入用户组，提前判断是否已经关注
                                 is_followed = await isUserFollowed(biliapi, room["uid"])
 
                             if follow_group and not is_followed:      #需要加入用户组但没有被关注，执行加入用户组
@@ -114,7 +116,7 @@ async def anchorJoin(biliapi: asyncbili,
         logging.warning(f'{biliapi.name}: 参与直播间{room["roomid"]}的天选时刻{anchor["id"]}异常，原因为({str(e)})')
     else:
         if ret["code"] == 0:
-            save_map[anchor["id"]] = (room["roomid"], room["uid"], anchor["current_time"]+anchor["time"],not is_followed and anchor["require_type"] == 1)
+            save_map[anchor["id"]] = (room["roomid"], room["uid"], anchor["current_time"]+anchor["time"],not is_followed)
             logging.info(f'{biliapi.name}: 参与直播间{room["roomid"]}的天选时刻{anchor["id"]}({anchor["award_name"]})成功')
 
 async def cleanMapWithUnfollow(biliapi: asyncbili, 
@@ -212,7 +214,7 @@ async def relationAddUser(biliapi: asyncbili,
                           tagid: int
                           ) -> int:
     await biliapi.followUser(uid, 1)
-    await asyncio.sleep(2)
+    await asyncio.sleep(1)
     try:
         ret = await biliapi.relationTagsAddUser(uid, tagid)
     except Exception as e:
@@ -228,7 +230,6 @@ async def cleanGroup(biliapi: asyncbili,
     while has:
         try:
             ret = await biliapi.getRelationTag(tagid)
-            print(ret)
         except Exception as e:
             logging.warning(f'{biliapi.name}: 天选获取分组用户异常,原因为({str(e)})')
             break
