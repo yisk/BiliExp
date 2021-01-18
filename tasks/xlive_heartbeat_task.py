@@ -90,7 +90,7 @@ async def heartbeat_task(biliapi: asyncbili,
         area_id = ret["data"]["room_info"]["area_id"]
         room_id = ret["data"]["room_info"]["room_id"] #为了防止上面的id是短id，这里确保得到的是长id
     except Exception as e:
-        logging.warning(f'{biliapi.name}: 直播请求房间信息异常，原因为{str(e)}，跳过直播心跳')
+        logging.warning(f'{biliapi.name}: 直播请求房间{room_id}信息异常，原因为{str(e)}，跳过直播心跳')
         webhook.addMsg('msg_simple', f'{biliapi.name}:直播心跳失败\n')
         return
     del ret
@@ -108,11 +108,11 @@ async def heartbeat_task(biliapi: asyncbili,
             async for code, data in xliveHeartBeatLoop(biliapi, parent_area_id, area_id, room_id, buvid): #每一次迭代发送一次心跳
                 if code != 0:
                     if retry:
-                        logging.warning(f'{biliapi.name}: 直播心跳错误，原因为{data}，重新进入房间')
+                        logging.warning(f'{biliapi.name}: 直播{room_id}心跳错误，原因为{data}，重新进入房间')
                         retry -= 1
                         continue
                     else:
-                        logging.warning(f'{biliapi.name}: 直播心跳错误，原因为{data}，退出心跳')
+                        logging.warning(f'{biliapi.name}: 直播{room_id}心跳错误，原因为{data}，退出心跳')
                         break
                 ii += 1
                 logging.info(f'{biliapi.name}: 成功在id为{room_id}的直播间发送第{ii}次心跳')
