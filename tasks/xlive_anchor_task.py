@@ -162,7 +162,7 @@ async def xliveRoomGenerator(biliapi: asyncbili,
             logging.warning(f'{biliapi.name}: 获取直播间列表异常,原因为(服务器强制断开连接)')
             return
         except Exception as e:
-            logging.warning(f'{biliapi.name}: 获取直播间列表异常,原因为({str(e)})')
+            logging.warning(f'{biliapi.name}: 获取直播间列表异常,原因为({traceback.format_exc()})')
             return
         else:
             if ret["code"] != 0:
