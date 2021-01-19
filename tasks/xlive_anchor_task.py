@@ -16,6 +16,7 @@ async def xlive_anchor_task(biliapi: asyncbili,
     follow_group = task_config.get("follow_group", None)
     unfollow = task_config.get("unfollow", True)
     clean_group_interval = task_config.get("clean_group_interval", 0)
+    run_once = task_config.get("run_once", False)
 
     if follow_group:
         tagid = await getRelationTagByName(biliapi, follow_group)
@@ -60,6 +61,8 @@ async def xlive_anchor_task(biliapi: asyncbili,
 
                             await anchorJoin(biliapi, anchor, room, is_followed or not unfollow, save_map) #参加天选时刻
 
+                if run_once:
+                    break
                 await sleep(task_config["searche_interval"])
                 await cleanMapWithUnfollow(biliapi, save_map)
     
