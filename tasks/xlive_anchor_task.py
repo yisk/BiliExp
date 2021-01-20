@@ -31,7 +31,7 @@ async def xlive_anchor_task(biliapi: asyncbili,
     try:
         async with timeout(Timeout):
             while True:
-                for area in task_config["searche_areas"]:
+                for area in task_config["search_areas"]:
                     async for room in xliveRoomGenerator(biliapi, area["paid"], area["aid"], area["sort"], area["ps"]):
                         if '2' in room["pendant_info"] and room["pendant_info"]["2"]["pendent_id"] == 504: #判断房间是否有天选时刻
                             if delay:
@@ -63,7 +63,7 @@ async def xlive_anchor_task(biliapi: asyncbili,
 
                 if run_once:
                     break
-                await sleep(task_config["searche_interval"])
+                await sleep(task_config["search_interval"])
                 await cleanMapWithUnfollow(biliapi, save_map)
     
     except TimeoutError:
