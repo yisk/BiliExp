@@ -7,6 +7,8 @@ BiliExp-Actions
 ![](https://img.shields.io/github/stars/happy888888/BiliExp.svg?style=plastic&logo=appveyor "Star数量")
 ![](https://img.shields.io/github/forks/happy888888/BiliExp.svg?style=plastic&logo=stackshare "Fork数量")
 
+</br>[点击快速使用](#使用方式先按照主分支说明切换分支否则找不到对应的Actions)
+
 ### 主要功能
 **B站自动操作脚本**
 * [x] 每日获取经验(投币(支持自定义up主)、点赞、分享视频) 
@@ -14,35 +16,35 @@ BiliExp-Actions
 * [x] 获取主站@和私聊消息提醒(便于多账号抽奖时获取中奖信息)
 * [x] 参与官方转盘抽奖活动(目前没有自动搜集活动的功能,需要在配置文件config/activities.json里面手动指定,本项目***discussions***下会更新比较新的转盘抽奖活动)
 * [x] 每日直播签到
-* [x] 直播挂机(获取小心心,点亮粉丝牌)
+* [x] 直播挂机(获取小心心,点亮粉丝牌，默认每次每个粉丝牌房间分别挂机45分钟)
 * [x] 直播自动送出快过期礼物 
-* [x] 直播天选时刻抽奖 (支持过滤付费抽奖)
+* [x] 直播天选时刻抽奖 (支持条件过滤，默认执行45分钟后退出)
 * [x] 直播应援团每日签到 
 * [ ] ~~直播开启宝箱领取银瓜子(本活动已结束，不知道B站以后会不会再启动)~~ 
 * [x] 每日兑换银瓜子为硬币 
 * [x] 自动领取大会员每月权益(每月1号领取B币劵，优惠券)
 * [x] 自动花费大会员剩余B币劵(每月28号执行，支持给自己充电或者兑换成金瓜子)
 * [x] 漫画APP每日签到
-* [x] 自动花费即将过期漫读劵
-* [x] 自动积分兑换漫画福利券(需中午12点启动)
+* [x] 自动花费即将过期漫读劵(默认不开启)
+* [x] 自动积分兑换漫画福利券(需中午12点启动，默认不开启)
 * [x] 自动领取大会员漫画每月福利劵
 * [ ] ~~自动参加每月"站友日"活动(本活动已结束，不知道B站以后会不会再启动)~~
 * [x] 定时清理无效动态(转发的过期抽奖，失效动态，支持自定义关键字，非官方渠道抽奖无法判断是否过期) 
-* [x] 风纪委员投票
+* [x] 风纪委员投票(默认45分钟内没有案件自动退出)
 </br>
 
 ```
 如有其他功能需求请发issue，提供功能说明和功能所在的B站页面(app功能可提供界面截图和进入方式)以帮助本项目扩展功能
 ```
 
-### 使用方式
+### 使用方式(先按照主分支说明切换分支否则找不到对应的Actions)
 * 1.准备
     *  1.1 一个或多个B站账号，以及登录后获取的SESSDATA，bili_jct，DedeUserID (获取方式见下方示意图)
 	   `浏览器打开B站主页--》按F12打开开发者工具--》application--》cookies`
 	   
        <div align="center"><img src="https://s1.ax1x.com/2020/09/23/wjM09e.png" width="800" height="450" title="获取cookies示例"></div>
     *  1.2 fork本项目
-* 2.简单部署(与3.复杂部署二选一，有json基础的推荐使用复杂部署而不是本项)
+* 2.部署
     *  2.1 在fork后的github仓库的 “Settings” --》“Secrets” 中添加"Secrets"，name(不用在意大小写)和value分别为：
         *  2.1.1 name为"biliconfig"           value为B站账号登录信息(可多个)，格式如下
         ```
@@ -74,32 +76,16 @@ BiliExp-Actions
         ```
 		注：每行一个推送参数(SCKEY email telegramBot_token或者空行)，***可以同时提供多个或不提供SCKEY或email或telegramBot_token，填写后会同时推送***,<br>
 		***使用telegramBot的注意，除了填写token,还要填写chat_id,在同一行用逗号隔开***,比如例子提供的意思是telegram token为`1443793198:AAEI9TGazdrj4Jh6X6B7CvuAKX4IivEb450`,chat_id为`1459469720`
+        *  2.1.3 (可选)name为"advconfig"           value为/config/config.json文件的所有内容(直接复制粘贴整个文件)
+		***此项为详细配置文件，可配置所有细节参数，可直接替代前两个secrets也可以与前两个secrets共同使用，注意此项不存在时直接使用默认配置***<br>
+		如果使用***天选时刻***，***风纪委员投票***和 ***直播心跳(获取小心心)*** 功能可参考 [部分功能推荐配置](https://github.com/happy888888/BiliExp/issues/178)
     *  2.2 添加完上面的"Secrets"后，进入"Actions" --》"run BiliExp"，点击右边的"Run workflow"即可第一次启动
-        *  2.2.1 首次fork可能要去actions(正上方的actions不是Settings里面的actions)里面同意使用actions条款，如果"Actions"里面没有"run BiliExp"，点一下右上角的"star"，"run BiliExp"就会出现在"Actions"里面
+        *  2.2.1 首次fork可能要去actions(正上方的actions不是Settings里面的actions)里面同意使用actions条款，如果"Actions"里面没有"run BiliExp"，点一下右上角的"star"，"run BiliExp"就会出现在"Actions"里面(先按照主分支说明切换分支否则找不到对应的Actions)
 		![image](https://user-images.githubusercontent.com/67217225/98933791-16659480-251c-11eb-9713-c3dbcc6321bf.png)
 		![image](https://user-images.githubusercontent.com/67217225/98934269-c935f280-251c-11eb-8bce-b8fa04c68cb8.png)
         *  2.2.2 第一次启动后，脚本会每天12:00自动执行，不需要再次手动执行(第一次手动执行这个步骤不能忽略)。
-        ```
-        注: 本部署方式仅提供默认配置，功能的详细配置包括但不限于以下所列，请使用下面的复杂部署方式
-		1. 每个账户自定义功能开启与关闭(简单部署不开启所有功能，所有用户使用相同配置)
-		2. 投币功能自定义投币参数(简单部署默认每天随机投5个币，达到6级后第二天停止)
-		3. 抽奖动态转发自定义评论内容，简单部署默认评论为(从未中奖，从未放弃[doge])
-		4. 漫画辅助功能的启用与详细配置，简单部署不启用此功能
-		5. 风纪委员投票功能的启用与详细配置，简单部署不启用此功能
-		6. 直播心跳获取小心心功能的启用与详细配置，简单部署不启用此功能
-        ```
 
-* 3.复杂部署与本地部署(与2.简单部署二选一)
-    *  3.1 进入config文件夹，按照说明配置config.json文件(***不保存到仓库***)，建议先看[配置文件说明](../master/config#目录)
-    *  3.2 在fork后的github仓库的 “Settings” --》“Secrets” 中添加"Secrets"，name和value分别为：
-        *  3.2.1 name为"advconfig"(注意不是上面的biliconfig)     value为3.1步骤配置好的config.json文件(直接把整个文件复制到这里)
-    *  3.3 同上面2.2配置
-    ```
-        advconfig设置后不需要设置biliconfig
-        需要本地运行则直接配置config/config.json文件并运行BiliExp.py即可(必须安装依赖aiohttp，可以执行pip3 install aiohttp)
-    ```
-
-* 4.更新代码
+* 3.更新代码
     
     *  进入文件夹.github/workflows，删除auto_merge.yml文件中第5,6行前面的`#`即可定时启动代码更新
 
@@ -116,6 +102,11 @@ BiliExp-Actions
 </br>
 
 ## 更新日志
+
+### 2021/01/19更新
+
+* 1.优化天选时刻，直播心跳，风纪投票三个模块
+* 2.更新转盘抽奖
 
 ### 2021/01/02更新
 

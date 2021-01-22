@@ -1,19 +1,22 @@
 from BiliClient import asyncbili
 from .import_once import taday
-from typing import AsyncGenerator, Dict, Any, List, Union
-import logging, asyncio, time, traceback
+import logging, time
+from asyncio import TimeoutError, sleep
 from aiohttp.client_exceptions import ServerDisconnectedError
+from concurrent.futures import CancelledError
 from async_timeout import timeout
+from typing import AsyncGenerator, Awaitable, Dict, Any, List, Union, Tuple
 
 async def xlive_anchor_task(biliapi: asyncbili,
                             task_config: Dict[str, Any]
-                            ) -> None:
+                            ) -> Awaitable:
     '''天选时刻任务'''
     Timeout = task_config.get("timeout", 850)
     delay = task_config.get("delay", 0)
     follow_group = task_config.get("follow_group", None)
     unfollow = task_config.get("unfollow", True)
     clean_group_interval = task_config.get("clean_group_interval", 0)
+    run_once = task_config.get("run_once", False)
 
     if follow_group:
         tagid = await getRelationTagByName(biliapi, follow_group)
@@ -28,14 +31,14 @@ async def xlive_anchor_task(biliapi: asyncbili,
     try:
         async with timeout(Timeout):
             while True:
-                for area in task_config["searche_areas"]:
+                for area in task_config["search_areas"]:
                     async for room in xliveRoomGenerator(biliapi, area["paid"], area["aid"], area["sort"], area["ps"]):
                         if '2' in room["pendant_info"] and room["pendant_info"]["2"]["pendent_id"] == 504: #判断房间是否有天选时刻
                             if delay:
-                                await asyncio.sleep(delay)
+                                await sleep(delay)
 
                             ok, anchor = await getAnchorInfo(biliapi, room["roomid"]) #获取天选信息
-                            if not ok:
+                            if not ok or not anchor:
                                 continue
 
                             if anchor["status"] != 1: #排除重复参加
@@ -48,7 +51,9 @@ async def xlive_anchor_task(biliapi: asyncbili,
                                 save_map[anchor["id"]] = None
                                 continue
 
-                            if unfollow or follow_group:              #需要取关或者需要加入用户组，提前判断是否已经关注
+                            if not anchor["require_type"] == 1:
+                                is_followed = True
+                            elif unfollow or follow_group:  #需要取关或者需要加入用户组，提前判断是否已经关注
                                 is_followed = await isUserFollowed(biliapi, room["uid"])
 
                             if follow_group and not is_followed:      #需要加入用户组但没有被关注，执行加入用户组
@@ -56,13 +61,17 @@ async def xlive_anchor_task(biliapi: asyncbili,
 
                             await anchorJoin(biliapi, anchor, room, is_followed or not unfollow, save_map) #参加天选时刻
 
-                await asyncio.sleep(task_config["searche_interval"])
+                if run_once:
+                    break
+                await sleep(task_config["search_interval"])
                 await cleanMapWithUnfollow(biliapi, save_map)
     
-    except asyncio.TimeoutError:
-        logging.warning(f'{biliapi.name}: 天选时刻抽奖任务超时({Timeout}秒)')
+    except TimeoutError:
+        logging.info(f'{biliapi.name}: 天选时刻抽奖任务超时({Timeout}秒)')
+    except CancelledError:
+        logging.warning(f'{biliapi.name}: 天选时刻抽奖任务被强制取消')
     except Exception as e:
-        logging.warning(f'{biliapi.name}: 天选时刻抽奖任务异常，异常为({traceback.format_exc()})')
+        logging.warning(f'{biliapi.name}: 天选时刻抽奖任务异常，异常为({str(e)})')
 
     await cleanMapWithUnfollow(biliapi, save_map, True)
 
@@ -87,10 +96,12 @@ def isJoinAnchor(anchor: Dict[str, Any],
 
 async def isUserFollowed(biliapi: asyncbili, 
                    uid: int
-                   ) -> bool:
+                   ) -> Awaitable[bool]:
     '''判断是否关注用户'''
     try:
         ret = await biliapi.getRelationByUid(uid)
+    except CancelledError as e:
+        raise e
     except Exception as e:
         logging.warning(f'{biliapi.name}: 天选判断与用户{uid}的关注状态失败，原因为({str(e)})，默认未关注')
         return False
@@ -106,21 +117,23 @@ async def anchorJoin(biliapi: asyncbili,
                      room: dict,
                      is_followed: bool,
                      save_map: dict
-                     ):
+                     ) -> Awaitable:
     '''参加天选时刻'''
     try:
         ret = await biliapi.xliveAnchorJoin(anchor["id"], anchor["gift_id"], anchor["gift_num"])
+    except CancelledError as e:
+        raise e
     except Exception as e:
         logging.warning(f'{biliapi.name}: 参与直播间{room["roomid"]}的天选时刻{anchor["id"]}异常，原因为({str(e)})')
     else:
         if ret["code"] == 0:
-            save_map[anchor["id"]] = (room["roomid"], room["uid"], anchor["current_time"]+anchor["time"],not is_followed and anchor["require_type"] == 1)
+            save_map[anchor["id"]] = (room["roomid"], room["uid"], anchor["current_time"]+anchor["time"],not is_followed)
             logging.info(f'{biliapi.name}: 参与直播间{room["roomid"]}的天选时刻{anchor["id"]}({anchor["award_name"]})成功')
 
 async def cleanMapWithUnfollow(biliapi: asyncbili, 
                         save_map: dict,
                         clean_all: bool = False
-                        ) -> bool:
+                        ) -> Awaitable:
     now_time = int(time.time())
     for k in list(save_map.keys()):
         if save_map[k]:
@@ -132,10 +145,12 @@ async def cleanMapWithUnfollow(biliapi: asyncbili,
 
 async def getAnchorInfo(biliapi: asyncbili, 
                         room_id: int
-                        ) -> (bool, dict):
+                        ) -> Awaitable[Tuple[bool, Dict]]:
     '''获取房间天选时刻信息'''
     try:
         ret = await biliapi.getLotteryInfoWeb(room_id)
+    except CancelledError as e:
+        raise e
     except Exception as e:
         logging.warning(f'{biliapi.name}: 天选时刻抽奖任务获取直播间{room_id}抽奖信息异常，原因为({str(e)})')
         return False, None
@@ -156,6 +171,8 @@ async def xliveRoomGenerator(biliapi: asyncbili,
         page += 1
         try:
             ret = await biliapi.xliveSecondGetList(pAreaId, AreaId, sort, page)
+        except CancelledError as e:
+            raise e
         except ServerDisconnectedError:
             logging.warning(f'{biliapi.name}: 获取直播间列表异常,原因为(服务器强制断开连接)')
             return
@@ -178,10 +195,12 @@ async def xliveRoomGenerator(biliapi: asyncbili,
 async def getRelationTagByName(biliapi: asyncbili,
                                name: str,
                                auto_create: bool = True
-                               ) -> int:
+                               ) -> Awaitable[int]:
     tagid = -1
     try:
         ret = await biliapi.getRelationTags()
+    except CancelledError as e:
+        raise e
     except Exception as e:
         logging.warning(f'{biliapi.name}: 天选获取用户分组失败,原因为({str(e)})')
     else:
@@ -197,6 +216,8 @@ async def getRelationTagByName(biliapi: asyncbili,
 
     try:
         ret = await biliapi.createRelationTag(name)
+    except CancelledError as e:
+        raise e
     except Exception as e:
         logging.warning(f'{biliapi.name}: 天选创建用户分组异常,原因为({str(e)})')
     else:
@@ -210,11 +231,13 @@ async def getRelationTagByName(biliapi: asyncbili,
 async def relationAddUser(biliapi: asyncbili,
                           uid: int,
                           tagid: int
-                          ) -> int:
+                          ) -> Awaitable[int]:
     await biliapi.followUser(uid, 1)
-    await asyncio.sleep(2)
+    await sleep(1)
     try:
         ret = await biliapi.relationTagsAddUser(uid, tagid)
+    except CancelledError as e:
+        raise e
     except Exception as e:
         logging.warning(f'{biliapi.name}: 天选将主播{uid}加入分组异常,原因为({str(e)})')
     else:
@@ -223,12 +246,13 @@ async def relationAddUser(biliapi: asyncbili,
 
 async def cleanGroup(biliapi: asyncbili,
                      tagid: int
-                     ):
+                     ) -> Awaitable:
     has = True
     while has:
         try:
             ret = await biliapi.getRelationTag(tagid)
-            print(ret)
+        except CancelledError as e:
+            raise e
         except Exception as e:
             logging.warning(f'{biliapi.name}: 天选获取分组用户异常,原因为({str(e)})')
             break

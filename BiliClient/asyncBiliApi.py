@@ -2,6 +2,13 @@
 from aiohttp import ClientSession
 from typing import Iterable, Mapping, Dict, Awaitable, Any
 import time, json
+has_enc = False
+try:
+    from .wasm_enc import calc_sign #加载直播心跳验证模块
+    has_enc = True
+except:                             #没有直播心跳验证模块使用服务器验证，否则注释下行
+    enc_server = 'https://1578907340179965.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/bili_server/heartbeat/'
+    ...
 
 class asyncBiliApi(object):
     '''B站异步接口类'''
@@ -253,6 +260,26 @@ class asyncBiliApi(object):
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
 
+    async def joinGroup(self,
+                        group_id: int,
+                        mobi_app: str = 'web'
+                        ) -> Awaitable[Dict[str, Any]]:
+        '''
+        加入应援团
+        group_id    int  应援团id
+        mobi_app    str  平台
+        '''
+        url = "https://api.vc.bilibili.com/link_group/v1/group/join_group_without_agree"
+        post_data = {
+            "group_id": group_id,
+            "mobi_app": mobi_app,
+            "build": 0,
+            "csrf": self._bili_jct,
+            "csrf_token": self._bili_jct
+            }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
+
     async def groupSign(self,
                         group_id: int,
                         owner_id: int
@@ -265,6 +292,7 @@ class asyncBiliApi(object):
         url = f'https://api.vc.bilibili.com/link_setting/v1/link_setting/sign_in?group_id={group_id}&owner_id={owner_id}'
         async with self._session.get(url, verify_ssl=False) as r:
             return await r.json()
+        #{"code":700017,"msg":"不能加入多个同一UP的应援团哦~","message":"不能加入多个同一UP的应援团哦~","data":{"group_id":-1}}
 
     async def getRelationTags(self) -> Awaitable[Dict[str, Any]]:
         '''取关注用户分组列表'''
@@ -533,6 +561,26 @@ class asyncBiliApi(object):
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
         #{"code":400,"data":null,"message":"余额不足","msg":"余额不足"}
+
+    async def xlivePkJoin(self,
+                          id: int,
+                          room_id: int,
+                          ) -> Awaitable[Dict[str, Any]]:
+        '''
+        参与直播大乱斗抽奖
+        id       int   大乱斗id
+        room_id  int   房间id
+        '''
+        url = 'https://api.live.bilibili.com/xlive/lottery-interface/v2/pk/join'
+        post_data = {
+            "id": id,
+            "room_id": room_id,
+            "type": "pk",
+            "csrf_token": self._bili_jct,
+            "csrf": self._bili_jct
+            }
+        async with self._session.post(url, data=post_data, verify_ssl=False) as r:
+            return await r.json()
 
     async def xliveFeedHeartBeat(self) -> Awaitable[Dict[str, Any]]:
         '''直播心跳 feed'''
@@ -809,52 +857,70 @@ class asyncBiliApi(object):
         return str(cookies)[23:43]
 
     async def xliveHeartBeatX(self, 
-                     id: list, 
-                     device: list,
-                     ts: int,
-                     ets: int,
-                     benchmark: str,
-                     time: int,
-                     s: str
+                              parent_area_id: int,
+                              area_id: int,
+                              room_id: int,
+                              num: int,
+                              uuid: str,
+                              ets: int,
+                              benchmark: str,
+                              interval: int,
+                              secret_rule: list
                      ) -> Awaitable[Dict[str, Any]]:
         '''
-        B站直播间内部心跳
-        id List[int] 整数数组[大分区,小分区,轮次,长位直播间]
-        device List[str] 字符串数组[bvuid, uuid]
-        ts int 时间戳
-        ets int 上次心跳时间戳timestamp
-        benchmark str 上次心跳秘钥secret_key
-        time int 上次心跳时间间隔
-        s str 加密字符串，由id, device, ets, ts, benchmark, time等参数计算出
+        B站直播间内部心跳（第n>1次心跳）
+        parent_area_id   int  大分区id  2网游 3手游 6单机 1娱乐 5电台 9虚拟主播 10生活 11学习
+        area_id          int  小分区id  0为全部小分区，不同大分区有不同的小分区
+        room_id          int  直播间id
+        num              int  心跳轮次
+        uuid             str  uuid标识符
+        ets              int  上次心跳时间戳timestamp
+        benchmark        str  上次心跳参数     data -> secret_key
+        interval         int  上次心跳时间间隔 data -> heartbeat_interval
+        secret_rule      list 上次心跳加密规则 data -> secret_rule
         '''
+        buvid = await self.xliveGetBuvid()
         post_data = {
-            "id": f'[{id[0]},{id[1]},{id[2]},{id[3]}]',
-            "device": f'["{device[0]}","{device[1]}"]',
-            "ts": ts,
+            "id": f'[{parent_area_id},{area_id},{num},{room_id}]',
+            "device": f'["{buvid}","{uuid}"]',
+            "ts": int(time.time() * 1000),
             "ets": ets,
             "benchmark": benchmark,
-            "time": time,
+            "time": interval,
             "ua": 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108',
             "csrf_token": self._bili_jct,
             "csrf": self._bili_jct,
-            "s": s
             }
+        if has_enc:            #有本地心跳验证模块
+            post_data["s"] = calc_sign(post_data, secret_rule) #依靠id，device，ts，ets，benchmark和secret_rule计算
+        elif enc_server:       #没有本地验证模块则使用服务器
+            async with self._session.post(enc_server, json={"t":post_data,"r":secret_rule}, verify_ssl=False) as r:
+                post_data["s"] = await r.text()
+        else:
+            raise RuntimeError("没有心跳验证模块")
         url = 'https://live-trace.bilibili.com/xlive/data-interface/v1/x25Kn/X'
         async with self._session.post(url, data=post_data, verify_ssl=False) as r:
             return await r.json()
 
     async def xliveHeartBeatE(self, 
-                     id: list, 
-                     device: list
-                     ) -> Awaitable[Dict[str, Any]]:
+                              parent_area_id: int,
+                              area_id: int,
+                              room_id: int,
+                              num: int,
+                              uuid: str,
+                              ) -> Awaitable[Dict[str, Any]]:
         '''
-        B站进入直播间心跳
-        id List[int] 整数数组[大分区,小分区,轮次,长位直播间]
-        device List[str] 字符串数组[bvuid, uuid]
+        B站进入直播间心跳（第1次心跳）
+        parent_area_id   int  大分区id  2网游 3手游 6单机 1娱乐 5电台 9虚拟主播 10生活 11学习
+        area_id          int  小分区id  0为全部小分区，不同大分区有不同的小分区
+        room_id          int  直播间id
+        num              int  心跳轮次
+        uuid             str  uuid标识符
         '''
+        buvid = await self.xliveGetBuvid()
         post_data = {
-            "id": f'[{id[0]},{id[1]},{id[2]},{id[3]}]',
-            "device": f'["{device[0]}","{device[1]}"]',
+            "id": f'[{parent_area_id},{area_id},{num},{room_id}]',
+            "device": f'["{buvid}","{uuid}"]',
             "ts": int(time.time() * 1000),
             "is_patch": 0, 
             "heart_beat": [], #短时间多次进入直播间，is_patch为1，heart_beat传入xliveHeartBeatX所需要的所有数据
